@@ -23,11 +23,29 @@ public class Main {
     get("/hello", (req, res) -> "Hello World");
 
     get("/", (request, response) -> {
-            Map<String, Object> attributes = new HashMap<>();
-            attributes.put("message", "Hello World!");
+             Connection connection = null;
+      Map<String, Object> attributes = new HashMap<>();
+      try {
+        connection = DatabaseUrl.extract().getConnection();
 
-            return new ModelAndView(attributes, "index.ftl");
-        }, new FreeMarkerEngine());
+        Statement stmt = connection.createStatement();
+       
+        ResultSet rs = stmt.executeQuery("SELECT * FROM salesforcedev.user");
+
+        ArrayList<String> output = new ArrayList<String>();
+        while (rs.next()) {
+          output.add( "Read from DB: " + rs.getString("name")+"-"+ rs.getString("sfid"));
+        }
+
+        attributes.put("results", output);
+        return new ModelAndView(attributes, "db.ftl");
+      } catch (Exception e) {
+        attributes.put("message", "There was an error: " + e);
+        return new ModelAndView(attributes, "error.ftl");
+      } finally {
+        if (connection != null) try{connection.close();} catch(SQLException e){}
+      }
+    }, new FreeMarkerEngine());
 
     get("/db", (req, res) -> {
       Connection connection = null;
